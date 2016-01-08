@@ -105,9 +105,7 @@ class TCPRequestHandler(socketserver.BaseRequestHandler):
 
         if isinstance(args, list):
             targetPath = data.get('target')
-            print(command)
-            print(args)
-            process = subprocess.Popen([command, *args], env=os.environ.copy(), shell=True)
+            process = subprocess.Popen([command] + args, env = os.environ.copy(), stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 
             try:
                 out, err = process.communicate(timeout = 10)
@@ -115,9 +113,7 @@ class TCPRequestHandler(socketserver.BaseRequestHandler):
                 process.kill()
                 out, err = process.communicate()
 
-            print(out)
-            print(err)
-            print("Return code: %d" % (process.returncode))
+            self.request.send(bytes(json.dumps({"stderr": err.decode('utf-8'), "stdout": out.decode('utf-8'), "returnCode": process.returncode}), 'ascii'))
             return True
 
         else:
