@@ -1,6 +1,6 @@
 import socket, json
 
-bufferSize = 1024
+bufferSize = 1024 * 100
 
 class Client():
 
@@ -18,8 +18,11 @@ class Client():
             self.socketConnection.sendall(bytes(json.dumps({**{"action": action}, **args}), 'ascii'))
             response = self.socketConnection.recv(bufferSize)
             f = open('proof-of-working.jpg', 'wb')
+            totalBytes = 0
             while(response):
-                print("Wrote %d bytes" % bufferSize)
+                responseBytes = len(response)
+                totalBytes += responseBytes
+                print("Wrote %d (%d total) bytes" % (responseBytes, totalBytes))
                 f.write(response)
                 response = self.socketConnection.recv(bufferSize)
             f.close()

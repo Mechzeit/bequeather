@@ -1,7 +1,6 @@
-#!/usr/bin/env python
 import sys, signal, threading
-from server.TCP import TCP as TCPServer
-from server.TCPRequestHandler import TCPRequestHandler
+from protocol.TCP.server import TCP as TCPServer
+from protocol.TCP.handler import TCPRequestHandler
 
 bufferSize = 1024
 
@@ -14,7 +13,7 @@ def signal_handler(signal, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 if __name__ == "__main__":
-    HOST, PORT = "localhost", 0
+    HOST, PORT = "localhost", 666
 
     serverInstance = TCPServer((HOST, PORT), TCPRequestHandler)
     ip, port = serverInstance.server_address
