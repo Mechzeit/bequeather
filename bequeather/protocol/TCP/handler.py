@@ -1,4 +1,4 @@
-import socketserver, re, json, threading, logging, subprocess
+import socketserver, re, json, threading, logging, subprocess, os
 #from ..request import RequestFile as RequestFileCommand
 
 bufferSize = 1024 * 100
@@ -12,7 +12,7 @@ class TCPRequestHandler(socketserver.BaseRequestHandler):
             return False
 
         # IDEA: Convert 'possible actions' into a modular system
-        self.possibleActions = {"requestFile": lambda: self.requestFile(self.data)}
+        self.possibleActions = {"requestFile": lambda: self.requestFile(self.data), "executeCommand": lambda: self.executeCommand(self.data)}
 
         for key, action in self.possibleActions.items(): # TODO: Convert to list comprehension
             if(key == message):
@@ -96,21 +96,28 @@ class TCPRequestHandler(socketserver.BaseRequestHandler):
         # TODO: Whitelist command support
         #  There will be no support for a blacklist.
 
-        command = data.get('args')
+        command = data.get('command', False)
         args = data.get('args', [])
+
+        if not command:
+            logger.error('No command provided')
+            return False
+
         if isinstance(args, list):
             targetPath = data.get('target')
-            process = subprocess.Popen(['fswebcam', *args])
+            print(command)
+            print(args)
+            process = subprocess.Popen([command, *args], env=os.environ.copy(), shell=True)
 
             try:
-                out, err = proc.communicate(timeout = 10)
-            except TimeoutExpired:
-                proc.kill()
-                out, err = proc.communicate()
+                out, err = process.communicate(timeout = 10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                out, err = process.communicate()
 
             print(out)
             print(err)
-            print("Return code: %d" % (proc.returncode))
+            print("Return code: %d" % (process.returncode))
             return True
 
         else:
