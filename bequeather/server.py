@@ -13,8 +13,9 @@ def signal_handler(signal, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 if __name__ == "__main__":
-    HOST, PORT = "localhost", 666
+    HOST, PORT = "", 666
 
+    TCPServer.allow_reuse_address = True 
     serverInstance = TCPServer((HOST, PORT), TCPRequestHandler)
     ip, port = serverInstance.server_address
 

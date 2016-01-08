@@ -1,4 +1,5 @@
-import socketserver, re, json, threading, logging
+import socketserver, re, json, threading, logging, subprocess
+#from ..request import RequestFile as RequestFileCommand
 
 bufferSize = 1024 * 100
 logging.basicConfig(level = logging.INFO)
@@ -87,3 +88,30 @@ class TCPRequestHandler(socketserver.BaseRequestHandler):
 
         #Return the file handler
         return f
+
+    def executeCommand(self, data):
+        """Executes a remote shell command
+
+        """
+        # TODO: Whitelist command support
+        #  There will be no support for a blacklist.
+
+        command = data.get('args')
+        args = data.get('args', [])
+        if isinstance(args, list):
+            targetPath = data.get('target')
+            process = subprocess.Popen(['fswebcam', *args])
+
+            try:
+                out, err = proc.communicate(timeout = 10)
+            except TimeoutExpired:
+                proc.kill()
+                out, err = proc.communicate()
+
+            print(out)
+            print(err)
+            print("Return code: %d" % (proc.returncode))
+            return True
+
+        else:
+            raise Exception('Nope') # Pick a better Exception.
