@@ -1,5 +1,6 @@
-import socketserver, re, json, threading, logging, subprocess, os
+import socketserver, re, json, threading, logging, subprocess, os, importlib.util
 #from ..request import RequestFile as RequestFileCommand
+from bequeather.settings import get as getSettings
 
 bufferSize = 1024 * 100
 logging.basicConfig(level = logging.INFO)
@@ -7,16 +8,25 @@ logger = logging.getLogger(__name__)
 
 class TCPRequestHandler(socketserver.BaseRequestHandler):
 
-    def matchAction(self, message):
-        if message == False:
-            return False
+    def getRoutine(self, routine, function):
+        importedRoutines = {}
+        # Scan 'routines' defined director(y/ies)
+        for routineModule in os.listdir(getSettings().get('routines').get('dir')):
+            # Cherry pick .py files only for time being
+            # Potentially support for routines to be created in other languages in the future.
+            if routineModule.endswith('.py'):
+                # Strip the file extension
+                moduleName = routineModule[:-3]
 
-        # IDEA: Convert 'possible actions' into a modular system
-        self.possibleActions = {"requestFile": lambda: self.requestFile(self.data), "executeCommand": lambda: self.executeCommand(self.data)}
+                # Dynamically import the module via the file location
+                spec = importlib.util.spec_from_file_location("module.name", os.path.join(getSettings().get('routines').get('dir'), "{}.py".format(moduleName)))
+                importedRoutines[moduleName] = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(importedRoutines[moduleName])
 
-        for key, action in self.possibleActions.items(): # TODO: Convert to list comprehension
-            if(key == message):
-                return action
+                # Iterate through all classes in module to see if any match the client 'routine'
+                for className in importedRoutines[moduleName].classes:
+                    if className == routine:
+                        return getattr(importedRoutines[moduleName], routine)
 
         return False
 
@@ -27,94 +37,22 @@ class TCPRequestHandler(socketserver.BaseRequestHandler):
         try:
             self.data = json.loads(str(data, 'ascii'))
 
-            action = self.matchAction(self.data.get('action', False))
+            action = self.getRoutine(self.data.get('routine'), self.data.get('function'))
             if(action):
                 #cur_thread = threading.current_thread()
                 ##if self.requestFile(data):
-                result = action()
-                if result:
+                result = action(self.request)
+
+                execution = getattr(result, self.data.get('function'))()
+                if execution:
+                    print(execution)
                     logger.debug("Success!")
                 else:
                     logger.error("Action failed to execute")
-
             else:
                 logger.warning('Unable to match action "%s"', action)
-
 
         except json.decoder.JSONDecodeError:
             logger.warning('Client data received was malformed (not JSON)')
 
         self.request.close()
-
-
-    def requestFile(self, data):
-        """Send a chunk of binary file over the socket
-
-        Args:
-            data: Dictionary of data received from client
-                  must at least contain key 'file'
-
-        Returns:
-            Class io.BufferedReader - https://docs.python.org/3.5/library/io.html#io.BufferedReader
-
-        Raises:
-            KeyError: if 'file' key is missing from arg 'data'
-            #FileNotFoundError: Not really.
-
-        """
-        try:
-            f = open(data['file'], 'rb')
-        except FileNotFoundError:
-            logger.warning('[!] FILE NOT FOUND')
-            return False
-
-        part = f.read(bufferSize)
-        totalBytes = 0
-
-        #Providing there is a chunk of data to read let us loop until fin.
-        while(part):
-            responseSize = len(part)
-            totalBytes += responseSize
-            logger.info("Sending %d (%d received) bytes", responseSize, totalBytes)
-
-            #Send off the chunk to the socket client 
-            self.request.send(part)
-
-            #Read another chunk from the file
-            part = f.read(bufferSize)
-
-        #Flush and close the file stream
-        f.close()
-
-        #Return the file handler
-        return f
-
-    def executeCommand(self, data):
-        """Executes a remote shell command
-
-        """
-        # TODO: Whitelist command support
-        #  There will be no support for a blacklist.
-
-        command = data.get('command', False)
-        args = data.get('args', [])
-
-        if not command:
-            logger.error('No command provided')
-            return False
-
-        if isinstance(args, list):
-            targetPath = data.get('target')
-            process = subprocess.Popen([command] + args, env = os.environ.copy(), stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-
-            try:
-                out, err = process.communicate(timeout = 10)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                out, err = process.communicate()
-
-            self.request.send(bytes(json.dumps({"stderr": err.decode('utf-8'), "stdout": out.decode('utf-8'), "returnCode": process.returncode}), 'ascii'))
-            return True
-
-        else:
-            raise Exception('Nope') # Pick a better Exception.
