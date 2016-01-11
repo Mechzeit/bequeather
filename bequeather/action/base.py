@@ -1,3 +1,4 @@
+import inspect
 
 class BaseAction():
 	command = None
@@ -25,3 +26,6 @@ class BaseAction():
 
 	def getResponse(self):
 		return self.responseData
+
+	def getMethodName(self):
+		return lambda: inspect.stack()[1][3]
