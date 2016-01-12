@@ -4,6 +4,7 @@ class BaseAction():
 	command = None
 	args = None
 	responseData = None
+	communication = True
 
 	def setArguments(self, **kwargs):
 		self.args = kwargs
@@ -29,3 +30,6 @@ class BaseAction():
 
 	def getMethodName(self):
 		return lambda: inspect.stack()[1][3]
+
+	def disableCommunication(self, value):
+		self.communication = not value

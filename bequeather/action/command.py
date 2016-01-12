@@ -17,7 +17,8 @@ class ShellCommand(BaseAction):
 			kwargs = []
 
 		# TODO: Abstract the sending method - for handling with other protocols in the future
-		self.getConnection().send(bytes(json.dumps({"routine": self.__class__.__name__, "function": self.getMethodName()(), "type": "json"}), 'ascii'))
+		if self.communication:
+			self.getConnection().send(bytes(json.dumps({"routine": self.__class__.__name__, "function": self.getMethodName()(), "type": "json"}), 'ascii'))
 
 		#if isinstance(kwargs, list):
 			#parse args
@@ -28,7 +29,8 @@ class ShellCommand(BaseAction):
 			process.kill()
 			out, err = process.communicate()
 
-		self.getConnection().send(bytes(json.dumps( {"stderr": err.decode('utf-8'), "stdout": out.decode('utf-8'), "returnCode": process.returncode}  ), 'ascii'))
+		if self.communication:
+			self.getConnection().send(bytes(json.dumps( {"stderr": err.decode('utf-8'), "stdout": out.decode('utf-8'), "returnCode": process.returncode}  ), 'ascii'))
 
 		self.setResponse(stderr = err.decode('utf-8'), stdout = out.decode('utf-8'), returnCode = process.returncode)
 		#else:

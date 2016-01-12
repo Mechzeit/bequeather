@@ -22,7 +22,8 @@ class RequestFileStream(BaseAction):
 			logger.warning('[!] FILE NOT FOUND')
 			return False
 
-		self.getConnection()().send(bytes(json.dumps({"routine": self.__class__.__name__, "function": self.getMethodName()(), "type": "io.stream", "bytes": os.path.getsize(targetFile)}), 'ascii'))
+		if self.communication:
+			self.getConnection()().send(bytes(json.dumps({"routine": self.__class__.__name__, "function": self.getMethodName()(), "type": "io.stream", "bytes": os.path.getsize(targetFile)}), 'ascii'))
 
 		part = f.read(bufferSize)
 		totalBytes = 0
@@ -34,7 +35,8 @@ class RequestFileStream(BaseAction):
 			logger.info("Sending %d (%d received) bytes", responseSize, totalBytes)
 
 			#Send off the chunk to the socket client 
-			self.getConnection()().send(part)
+			if self.communication:
+				self.getConnection()().send(part)
 
 			#Read another chunk from the file
 			part = f.read(bufferSize)
