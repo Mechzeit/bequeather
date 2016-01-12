@@ -55,13 +55,15 @@ TBA.
 2. It's a relatively simple project to bring myself back into Python-mode after too working with too much PHP.
 
 ## Roadmap/Ideas
+* Authentication - via users, or key 
+* ACL for users/keys
 * Support streaming from a live feed and/or streaming video formats
 * Support TLS for socket
 * Different server 'adapters'
   * Web Socket
   * UDP(Anyone?)
   * HTTP
-* Client libraries (not explicitly related to this repository)
+* Support for Python >= 2
 
 ## Notes
 * This will be my first publically available Python 3 module

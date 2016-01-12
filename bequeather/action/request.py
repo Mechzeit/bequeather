@@ -15,14 +15,14 @@ class RequestFileStream(BaseAction):
 	def execute(self):
 		bufferSize = getSettings().get('chunkSize')
 		targetFile = self.parseTargetPath()
-		
+
 		try:
 			f = open(targetFile, 'rb')
 		except FileNotFoundError:
 			logger.warning('[!] FILE NOT FOUND')
 			return False
 
-		self.getConnection()().send(bytes(json.dumps({"routine": self.__class__.__name__, "function": self.getMethodName()(), "type": "file stream", "bytes": os.path.getsize(targetFile)}), 'ascii'))
+		self.getConnection()().send(bytes(json.dumps({"routine": self.__class__.__name__, "function": self.getMethodName()(), "type": "io.stream", "bytes": os.path.getsize(targetFile)}), 'ascii'))
 
 		part = f.read(bufferSize)
 		totalBytes = 0
