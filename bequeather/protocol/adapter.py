@@ -1,0 +1,3 @@
+
+class AdapterBase:
+	pass
